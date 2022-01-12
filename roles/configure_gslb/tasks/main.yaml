@@ -9,8 +9,9 @@
     path: virtualservice
     tenant: "{{ tenant_name }}"
     params:
-      { name: "{{ ApplicationName }}-vip" }
-  register: vs_dal
+      { name: "{{ ApplicationName }}-vs" }
+  register: vs
+- debug: var=vs
 - name: lookup vsvip of newly created virtualservice 1
   avi_api_session:
     avi_credentials:
@@ -23,7 +24,8 @@
     tenant: "{{ tenant_name }}"
     params:
       { name: "{{ ApplicationName }}-vsvip" }
-  register: vsvip_dal
+  register: vsvip
+- debug: var=vsvip
 
 - name: lookup cluster uuid
   avi_api_session:
@@ -37,6 +39,16 @@
     tenant: "admin"
   register: clusteruuid_aws
 
+- name: Set GSLB Pool member IP when Public
+  set_fact:
+    pool_member_ip: "{{ vsvip['obj']['results'][0]['vip'][0]['floating_ip']['addr'] }}"
+  when: gslb_ips == "Public"
+
+- name: Set GSLB Pool member IP when Public
+  set_fact:
+    pool_member_ip: "{{ vsvip['obj']['results'][0]['vip'][0]['ip_address']['addr'] }}"
+  when: gslb_ips == "Private"
+
 - name: Create gslbservice
   avi_gslbservice:
     avi_credentials:
@@ -46,16 +58,16 @@
         controller: "{{ ctrl }}"
     name: "{{ ApplicationName }}-gslbservice"
     domain_names:
-    - "{{ ApplicationName.split('.')[0] }}-wip.{{ ApplicationName.split('.')[1:] | join('.') }}"
+    - "{{ ApplicationName }}.{{ clouds[env].gslb_domain }}"
     down_response: 
       type: GSLB_SERVICE_DOWN_RESPONSE_NONE
     groups:
     - members:
       - cluster_uuid: "{{ clusteruuid_aws.obj.uuid }}"
         ip:
-          addr: "{{ vsvip_dal['obj']['results'][0]['vip'][0]['floating_ip']['addr'] }}"
+          addr: "{{ pool_member_ip }}"
           type: V4
-        vs_uuid: "{{ vs_dal['obj']['results'][0]['uuid'] }}"
+        vs_uuid: "{{ vs['obj']['results'][0]['uuid'] }}"
       name: "{{ ApplicationName }}-pool"
       priority: 9
     # health_monitor_refs:

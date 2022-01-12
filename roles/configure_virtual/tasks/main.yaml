@@ -1,3 +1,4 @@
+- debug: var=env
 - name: lookup uuid of cloud
   avi_api_session:
     avi_credentials:
@@ -10,7 +11,8 @@
     tenant: "admin"
     params:
       { name: "{{ CloudName }}" }
-  register: aws_cloud
+  register: cloud
+- debug: var=cloud
 - name: lookup uuid of subnet
   avi_api_session:
     avi_credentials:
@@ -22,20 +24,21 @@
     path: networksubnetlist
     tenant: "admin"
     params:
-      { name: "{{ aws_subnet }}",
-        cloud_uuid: "{{ aws_cloud['obj']['results'][0]['uuid'] }}" }
-  register: aws_subnet_uuid
-- debug: var=aws_subnet_uuid
+      { name: "{{ cloud_network }}",
+        cloud_uuid: "{{ cloud['obj']['results'][0]['uuid'] }}" }
+  register: subnet_uuid
+- debug: var=subnet_uuid
 - name: Avi Deploy new virtual
   include_role:
     name: avinetworks.aviconfig
   vars:
     cloud_name: "{{ CloudName }}"
-    app_name: "{{ ApplicationName.split('.')[0] }}"
-    domain_name: "{{ ApplicationName.split('.')[1:] | join('.') }}"
+    app_name: "{{ ApplicationName }}"
+    domain_name: "{{ clouds[env].domain }}"
+    #app_name: "{{ ApplicationName.split('.')[0] }}"
+    #domain_name: "{{ ApplicationName.split('.')[1:] | join('.') }}"
     app_type: "{{ ApplicationType }}"
-    avi_controller: "{{ ctrl }}"
-    location: "{{ loc }}"
+    #avi_controller: "{{ ctrl }}"
     sni_type: "{{ sni }}"
     department: "{{ Department }}"
     health_monitor: "{{ HealthMonitor }}"

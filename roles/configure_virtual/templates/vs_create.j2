@@ -87,7 +87,7 @@ avi_config:
   pool:
     - api_version: "{{ api_version | default('20.1.1') }}"
       avi_config_state: present
-      name: "{{ app_name }}.{{ domain_name }}-pool"
+      name: "{{ app_name }}-pool"
       cloud_ref: "/api/cloud?name={{ cloud_name | default('Default-Cloud') }}"
       tenant: "{{ tenant_name | default('admin') }}"
       tenant_ref: "/api/tenant?name={{ tenant_name | default('admin') }}"
@@ -129,9 +129,9 @@ avi_config:
       inline_health_monitor: true
 
 
-  {% if env == "aws" %}
+  {% if env == "aws" or env == "azure" or env == "gcp" %}
   vsvip:
-    - name: "{{ app_name }}.{{ domain_name }}-vsvip"
+    - name: "{{ app_name }}-vsvip"
       cloud_ref: "/api/cloud?name={{ cloud_name | default('Default-Cloud') }}"
       vip:
         - auto_allocate_ip: true
@@ -140,13 +140,13 @@ avi_config:
           avi_allocated_fip: true
           avi_allocated_vip: true
           enabled: true
-          subnet_uuid: "{{ aws_subnet_uuid['obj']['results'][0]['uuid'] }}"
+          subnet_uuid: "{{ subnet_uuid['obj']['results'][0]['uuid'] }}"
       dns_info:
         - fqdn: "{{ app_name }}.{{ domain_name }}"
           type: DNS_RECORD_A
   {% else %}
   vsvip:
-    - name: "{{ app_name }}.{{ domain_name }}-vsvip"
+    - name: "{{ app_name }}-vsvip"
       cloud_ref: "/api/cloud?name={{ cloud_name | default('Default-Cloud') }}"
       vip:
         - auto_allocate_ip: true
@@ -157,7 +157,7 @@ avi_config:
           enabled: true
           vip_id: '0'
           ipam_network_subnet:
-            network_ref: "/api/network?name={{ vip_network }}"
+            network_ref: "/api/network?name={{ cloud_network }}"
             subnet:
               ip_addr:
                 addr: "{{ vip_subnet }}"
@@ -173,12 +173,12 @@ avi_config:
       avi_config_state: present
       avi_api_update_method: patch
       avi_api_patch_op: replace
-      name: "{{ app_name }}.{{ domain_name }}-vip"
+      name: "{{ app_name }}-vs"
       cloud_ref: "/api/cloud?name={{ cloud_name | default('Default-Cloud') }}"
       tenant: "{{ tenant_name | default('admin') }}"
       tenant_ref: "/api/tenant?name={{ tenant_name | default('admin') }}"
-      pool_ref: "/api/pool?name={{ app_name }}.{{ domain_name }}-pool"
-      vsvip_ref: "/api/vsvip?name={{ app_name }}.{{ domain_name }}-vsvip"
+      pool_ref: "/api/pool?name={{ app_name }}-pool"
+      vsvip_ref: "/api/vsvip?name={{ app_name }}-vsvip"
       network_profile_ref: "/api/networkprofile?name={{ network_prof }}"
       application_profile_ref: "/api/applicationprofile?name={{ app_profile }}"
       services:

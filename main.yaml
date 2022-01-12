@@ -1,10 +1,23 @@
 ---
 - hosts: localhost
   gather_facts: no
-
+  vars:
+    avi_role_config_log_mode: 'False'
+    Tenant: multi-cloud
+    CloudName: Default-Cloud
+    #ApplicationName: testapp1.east2.avidemo.net
+    ApplicationType: https_proxy
+    HealthMonitor: 'ping'
+    ListeningPort: '443'
+    sni: none
+    PoolMembers: '10.10.10.10,80,enabled'
+    #ssl_key=ssl/key.key (Optional, creates a certificate with cert and key)
+    #ssl_crt=ssl/crt.crt (Optional, creates a certificate with cert and key)
+    GenerateCertificate: False
+    WafEnabled: False
+    GslbEnabled: True
   vars_files:
     - "vars/creds.yaml"
-
   # tasks:
   #   - local_action:
   #     - command: ansible-galaxy install avinetworks.aviconfig --roles-path /etc/ansible/roles
@@ -17,16 +30,17 @@
       ctrl: "{{ avi_controller }}"
       tenant_name: "{{ Tenant }}"
     - role: configure_virtual
-      loc: "dallas"
-      env: "aws"
+      env: "{{ env }}"
       ctrl: "{{ avi_controller }}"
       tenant_name: "{{ Tenant }}"
     - role: generate_certificate
       ctrl: "{{ avi_controller }}"
       tenant_name: "{{ Tenant }}"
-      when: GenerateCertificate is defined
+      when: GenerateCertificate | bool
     - role: configure_gslb
       gslb_leader: "{{ avi_controller }}"
-      env: "aws"
+      env: "{{ env }}"
       ctrl: "{{ avi_controller }}"
       tenant_name: "{{ Tenant }}"
+      when: GslbEnabled | bool
+
